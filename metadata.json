@@ -1,0 +1,8 @@
+{
+  "name": "VibeCheck - Event Hosting & Ticketing",
+  "description": "A mobile-first, high-energy event platform inspired by modern gesture-driven design, featuring secure QR ticketing and real-time host analytics.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
