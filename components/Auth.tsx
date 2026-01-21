@@ -10,27 +10,26 @@ import {
   AlertCircle, 
   ChevronDown, 
   Search, 
-  X, 
-  MessageCircle, 
-  ExternalLink,
-  MessageSquare
+  X,
+  Lock,
+  Globe,
+  Fingerprint
 } from 'lucide-react';
-import { COUNTRIES } from '../constants';
+import { COUNTRIES, Country } from '../constants';
 
 interface AuthProps {
   onLogin: () => void;
 }
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [step, setStep] = useState<'phone' | 'sync' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'handshake' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [timer, setTimer] = useState(60);
-  const [sessionId] = useState(() => Math.random().toString(36).substring(2, 8).toUpperCase());
+  const [timer, setTimer] = useState(30);
   
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
   const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
 
@@ -43,9 +42,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     );
   }, [countrySearch]);
 
-  const formatPhoneNumber = (value: string) => {
+  const rawPhone = useMemo(() => phone.replace(/\D/g, ''), [phone]);
+  
+  const isPhoneValid = useMemo(() => {
+    return rawPhone.length >= selectedCountry.minLength && rawPhone.length <= selectedCountry.maxLength;
+  }, [rawPhone, selectedCountry]);
+
+  const formatPhoneNumber = (value: string, country: Country) => {
     const cleaned = value.replace(/\D/g, '');
-    if (selectedCountry.code === '+1') {
+    
+    if (country.format === '(XXX) XXX-XXXX') {
       const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,4})$/);
       if (!match) return value;
       const parts = [match[1], match[2], match[3]].filter(Boolean);
@@ -54,12 +60,29 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       if (parts.length === 2) return `(${parts[0]}) ${parts[1]}`;
       return `(${parts[0]}) ${parts[1]}-${parts[2]}`;
     }
-    return cleaned.replace(/(.{3})/g, '$1 ').trim();
+    
+    // Default dynamic grouping for international numbers
+    return cleaned.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    if (formatted.length <= 18) setPhone(formatted);
+    const cleaned = e.target.value.replace(/\D/g, '');
+    if (cleaned.length <= selectedCountry.maxLength) {
+      const formatted = formatPhoneNumber(e.target.value, selectedCountry);
+      setPhone(formatted);
+      if (window.navigator.vibrate) window.navigator.vibrate(5);
+    }
+  };
+
+  const handleSendCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isPhoneValid) return;
+    
+    setStep('handshake');
+    // Simulated Security Handshake
+    await new Promise(r => setTimeout(r, 1800));
+    setStep('otp');
+    setTimer(30);
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -72,6 +95,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     if (value && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
+    if (window.navigator.vibrate) window.navigator.vibrate(10);
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -80,30 +104,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     }
   };
 
-  const startSyncProcess = (e: React.FormEvent) => {
-    e.preventDefault();
-    setStep('sync');
-  };
-
-  const openWhatsApp = () => {
-    const adminNumber = "233238318021";
-    const message = `Authorize VibeCheck Access\nSession ID: [${sessionId}]\nPhone: ${selectedCountry.code}${phone.replace(/\D/g, '')}\n\nPlease send my verification code.`;
-    const url = `https://wa.me/${adminNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-    
-    // After a delay, show the OTP input so they can enter what the admin sends
-    setTimeout(() => {
-      setStep('otp');
-    }, 2000);
-  };
-
   const verifyOtp = async () => {
     setIsLoading(true);
     await new Promise(r => setTimeout(r, 1500));
     const code = otp.join('');
-    // Mock: Codes starting with "1" are success
+    // Validation Logic: Any code starting with '1' is accepted
     if (code.startsWith('1')) {
-      if (window.navigator.vibrate) window.navigator.vibrate(50);
+      if (window.navigator.vibrate) window.navigator.vibrate([40, 40, 100]);
       onLogin();
     } else {
       setIsLoading(false);
@@ -148,16 +155,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           >
             <div className="flex items-center space-x-4 mb-6">
               <div className="w-14 h-14 bg-[#00F0FF] rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.2)]">
-                <Smartphone className="text-black w-7 h-7" />
+                <Globe className="text-black w-7 h-7" />
               </div>
-              <h2 className="text-4xl font-black tracking-tight">Vibe In</h2>
+              <h2 className="text-4xl font-black tracking-tight">Access</h2>
             </div>
             
             <p className="text-gray-500 font-bold mb-12 uppercase text-xs tracking-widest leading-loose">
-              Direct access via WhatsApp Concierge. Enter your mobile number to begin sync.
+              Enter your mobile number. We'll send an encrypted passcode for global access.
             </p>
 
-            <form onSubmit={startSyncProcess} className="space-y-8">
+            <form onSubmit={handleSendCode} className="space-y-8">
               <div className="flex flex-col space-y-4">
                 <button
                   type="button"
@@ -180,75 +187,55 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     type="tel"
                     value={phone}
                     onChange={handlePhoneChange}
-                    placeholder="Mobile number"
-                    className="w-full bg-transparent pl-16 text-3xl font-black outline-none placeholder:text-gray-800"
+                    placeholder="000 000 000"
+                    className="w-full bg-transparent pl-20 text-3xl font-black outline-none placeholder:text-gray-800"
                   />
+                </div>
+                
+                <div className="flex justify-between items-center px-1">
+                  <div className={`text-[10px] font-black uppercase tracking-widest flex items-center space-x-2 ${isPhoneValid ? 'text-[#00FF00]' : 'text-gray-700'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${isPhoneValid ? 'bg-[#00FF00] animate-pulse' : 'bg-gray-700'}`} />
+                    <span>{isPhoneValid ? 'Secure Match' : `Awaiting ${selectedCountry.minLength}-${selectedCountry.maxLength} digits`}</span>
+                  </div>
+                  <div className="text-[10px] font-black text-gray-800 uppercase tracking-widest">
+                    {rawPhone.length} / {selectedCountry.maxLength}
+                  </div>
                 </div>
               </div>
 
               <button 
-                disabled={phone.length < 5}
+                disabled={!isPhoneValid || isLoading}
                 type="submit"
-                className={`w-full py-6 rounded-3xl text-xl font-black flex items-center justify-center space-x-3 transition-all duration-300 ${phone.length >= 5 ? 'bg-[#00F0FF] text-black shadow-[0_20px_40px_rgba(0,240,255,0.3)]' : 'bg-[#1A1A1A] text-gray-600'}`}
+                className={`w-full py-6 rounded-3xl text-xl font-black flex items-center justify-center space-x-3 transition-all duration-300 ${isPhoneValid ? 'bg-[#00F0FF] text-black shadow-[0_20px_40px_rgba(0,240,255,0.3)]' : 'bg-[#1A1A1A] text-gray-600 cursor-not-allowed'}`}
               >
-                <span>Continue to Sync</span>
+                <span>Send Secure Pass</span>
                 <ArrowRight className="w-6 h-6" />
               </button>
             </form>
           </motion.div>
         )}
 
-        {step === 'sync' && (
+        {step === 'handshake' && (
           <motion.div 
-            key="sync-step"
+            key="handshake-step"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
-            className="flex-1 flex flex-col justify-center items-center text-center space-y-12"
+            className="flex-1 flex flex-col items-center justify-center text-center space-y-10"
           >
             <div className="relative">
               <motion.div 
-                animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute inset-0 bg-[#25D366] rounded-full blur-3xl"
+                animate={{ scale: [1, 1.4, 1], opacity: [0.1, 0.3, 0.1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="absolute inset-0 bg-[#00F0FF] rounded-full blur-3xl"
               />
-              <div className="w-32 h-32 bg-[#25D366] rounded-full flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(37,211,102,0.4)]">
-                <MessageCircle className="text-white w-16 h-16 fill-white" />
+              <div className="w-32 h-32 bg-[#1A1A1A] border-4 border-[#00F0FF] rounded-[40px] flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(0,240,255,0.2)]">
+                <Fingerprint className="w-16 h-16 text-[#00F0FF] animate-pulse" />
               </div>
             </div>
-
-            <div className="space-y-4">
-              <h2 className="text-4xl font-black">WhatsApp Sync</h2>
-              <p className="text-gray-400 font-bold text-lg leading-relaxed max-w-xs">
-                Tap the button below to message our admin and receive your unique access code.
-              </p>
-            </div>
-
-            <div className="w-full space-y-4">
-              <button 
-                onClick={openWhatsApp}
-                className="w-full py-6 rounded-3xl bg-white text-black font-black text-xl flex items-center justify-center space-x-3 active:scale-95 transition-all shadow-2xl"
-              >
-                <ExternalLink className="w-6 h-6" />
-                <span>Open WhatsApp</span>
-              </button>
-              
-              <div className="bg-[#1A1A1A] p-4 rounded-2xl flex items-center space-x-3 border border-white/5">
-                <div className="w-10 h-10 bg-[#00F0FF]/10 rounded-xl flex items-center justify-center">
-                  <MessageSquare className="text-[#00F0FF] w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <div className="text-[10px] font-black uppercase text-[#00F0FF]">Admin Protocol</div>
-                  <div className="text-xs font-bold text-gray-400">Ref: {sessionId}</div>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setStep('phone')}
-                className="text-gray-500 font-bold text-xs underline pt-4"
-              >
-                Go back and edit number
-              </button>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black uppercase tracking-tight">Security Handshake</h2>
+              <p className="text-gray-500 font-bold text-sm tracking-widest uppercase">Initializing encrypted gateway...</p>
             </div>
           </motion.div>
         )}
@@ -265,11 +252,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <div className="w-14 h-14 bg-[#00F0FF] rounded-2xl flex items-center justify-center">
                 <ShieldCheck className="text-black w-7 h-7" />
               </div>
-              <h2 className="text-4xl font-black tracking-tight">Access Code</h2>
+              <h2 className="text-4xl font-black tracking-tight">Verify</h2>
             </div>
             
             <p className="text-gray-500 font-bold mb-12 uppercase text-xs tracking-widest leading-loose">
-              Check your WhatsApp for the code sent by the Admin. <br/>Enter it below to complete authorization.
+              Sent to <span className="text-white">{selectedCountry.code} {phone}</span>. <br/>Enter the 6-digit passcode.
             </p>
 
             <motion.div 
@@ -294,32 +281,38 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             {error && (
               <div className="flex items-center space-x-2 text-red-500 font-bold text-sm mb-8 justify-center">
                 <AlertCircle className="w-4 h-4" />
-                <span>Incorrect code. Message admin again if needed.</span>
+                <span>Passcode mismatch. Try again.</span>
               </div>
             )}
 
             <div className="flex flex-col items-center space-y-6">
-              {isLoading && (
+              {isLoading ? (
                 <div className="flex items-center space-x-2 text-[#00F0FF]">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-sm font-black uppercase tracking-widest">Verifying Connection...</span>
+                  <span className="text-sm font-black uppercase tracking-widest">Validating Entry...</span>
                 </div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => {
+                      setOtp(['','','','','','']);
+                      setTimer(30);
+                    }}
+                    disabled={timer > 0}
+                    className={`flex items-center space-x-2 font-black uppercase text-[10px] tracking-widest transition-colors ${timer > 0 ? 'text-gray-700' : 'text-[#00F0FF]'}`}
+                  >
+                    <RefreshCcw className="w-3 h-3" />
+                    <span>{timer > 0 ? `Retry in ${timer}s` : 'Resend Now'}</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => setStep('phone')}
+                    className="text-gray-500 font-bold text-xs underline"
+                  >
+                    Change Number
+                  </button>
+                </>
               )}
-              
-              <button 
-                onClick={openWhatsApp}
-                className="flex items-center space-x-2 font-black uppercase text-[10px] tracking-widest text-[#00F0FF]"
-              >
-                <MessageCircle className="w-3 h-3" />
-                <span>Message Admin Again</span>
-              </button>
-              
-              <button 
-                onClick={() => setStep('phone')}
-                className="text-gray-500 font-bold text-xs underline"
-              >
-                Restart Verification
-              </button>
             </div>
           </motion.div>
         )}
@@ -335,7 +328,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             className="absolute inset-0 bg-black z-[200] flex flex-col pt-16"
           >
             <div className="px-6 flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-black tracking-tight">Region</h2>
+              <h2 className="text-3xl font-black tracking-tight">Select Region</h2>
               <button 
                 onClick={() => setIsCountryModalOpen(false)}
                 className="bg-white/10 p-3 rounded-full active:scale-90 transition-transform"
@@ -378,14 +371,23 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <span className="font-black text-gray-500">{c.code}</span>
                 </button>
               ))}
+              {filteredCountries.length === 0 && (
+                <div className="py-20 text-center text-gray-600 font-black uppercase text-xs tracking-widest">
+                  Region Not Detected
+                </div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="mt-auto text-center pb-8">
-        <p className="text-[10px] text-gray-700 font-bold uppercase tracking-widest px-8 leading-relaxed">
-          Authorized via VibeCheck Concierge Network. By continuing you verify your session identity.
+      <div className="mt-auto flex flex-col items-center space-y-6 pb-8">
+        <div className="flex items-center space-x-2 text-gray-600 bg-white/5 px-4 py-2 rounded-full">
+          <Lock className="w-3 h-3" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Global Protocol V.2.0</span>
+        </div>
+        <p className="text-[10px] text-gray-700 font-bold uppercase tracking-widest px-8 text-center leading-relaxed">
+          VibeCheck encrypts all data packets locally before transmission.
         </p>
       </div>
     </motion.div>

@@ -63,22 +63,35 @@ export const APP_COLOR = {
   gray: '#1A1A1A',
 };
 
-export const COUNTRIES = [
-  { name: 'United States', code: '+1', flag: '🇺🇸' },
-  { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
-  { name: 'Canada', code: '+1', flag: '🇨🇦' },
-  { name: 'Nigeria', code: '+234', flag: '🇳🇬' },
-  { name: 'Germany', code: '+49', flag: '🇩🇪' },
-  { name: 'France', code: '+33', flag: '🇫🇷' },
-  { name: 'Australia', code: '+61', flag: '🇦🇺' },
-  { name: 'India', code: '+91', flag: '🇮🇳' },
-  { name: 'South Africa', code: '+27', flag: '🇿🇦' },
-  { name: 'Brazil', code: '+55', flag: '🇧🇷' },
-  { name: 'Japan', code: '+81', flag: '🇯🇵' },
-  { name: 'Mexico', code: '+52', flag: '🇲🇽' },
-  { name: 'United Arab Emirates', code: '+971', flag: '🇦🇪' },
-  { name: 'Ghana', code: '+233', flag: '🇬🇭' },
-  { name: 'Kenya', code: '+254', flag: '🇰🇪' },
-  { name: 'Spain', code: '+34', flag: '🇪🇸' },
-  { name: 'Italy', code: '+39', flag: '🇮🇹' },
+export interface Country {
+  name: string;
+  code: string;
+  flag: string;
+  minLength: number;
+  maxLength: number;
+  format?: string;
+}
+
+export const COUNTRIES: Country[] = [
+  { name: 'United States', code: '+1', flag: '🇺🇸', minLength: 10, maxLength: 10, format: '(XXX) XXX-XXXX' },
+  { name: 'Ghana', code: '+233', flag: '🇬🇭', minLength: 9, maxLength: 10 },
+  { name: 'Nigeria', code: '+234', flag: '🇳🇬', minLength: 10, maxLength: 11 },
+  { name: 'United Kingdom', code: '+44', flag: '🇬🇧', minLength: 10, maxLength: 10 },
+  { name: 'Canada', code: '+1', flag: '🇨🇦', minLength: 10, maxLength: 10, format: '(XXX) XXX-XXXX' },
+  { name: 'Germany', code: '+49', flag: '🇩🇪', minLength: 10, maxLength: 11 },
+  { name: 'France', code: '+33', flag: '🇫🇷', minLength: 9, maxLength: 9 },
+  { name: 'Australia', code: '+61', flag: '🇦🇺', minLength: 9, maxLength: 9 },
+  { name: 'India', code: '+91', flag: '🇮🇳', minLength: 10, maxLength: 10 },
+  { name: 'South Africa', code: '+27', flag: '🇿🇦', minLength: 9, maxLength: 9 },
+  { name: 'Brazil', code: '+55', flag: '🇧🇷', minLength: 10, maxLength: 11 },
+  { name: 'Japan', code: '+81', flag: '🇯🇵', minLength: 10, maxLength: 10 },
+  { name: 'Mexico', code: '+52', flag: '🇲🇽', minLength: 10, maxLength: 10 },
+  { name: 'Kenya', code: '+254', flag: '🇰🇪', minLength: 9, maxLength: 9 },
+  { name: 'United Arab Emirates', code: '+971', flag: '🇦🇪', minLength: 9, maxLength: 9 },
+  { name: 'Spain', code: '+34', flag: '🇪🇸', minLength: 9, maxLength: 9 },
+  { name: 'Italy', code: '+39', flag: '🇮🇹', minLength: 10, maxLength: 10 },
+  { name: 'Netherlands', code: '+31', flag: '🇳🇱', minLength: 9, maxLength: 9 },
+  { name: 'China', code: '+86', flag: '🇨🇳', minLength: 11, maxLength: 11 },
+  { name: 'Singapore', code: '+65', flag: '🇸🇬', minLength: 8, maxLength: 8 },
+  { name: 'New Zealand', code: '+64', flag: '🇳🇿', minLength: 8, maxLength: 10 },
 ];
